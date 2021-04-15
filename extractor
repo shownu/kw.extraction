@@ -1,0 +1,87 @@
+Sub extractKW()
+
+'------------------- define variables & set ranges ----------------------
+
+Dim titlesList, titlesListBG, excludedCharList, excludedWordList As Range
+Dim titlesInputCel, excludedCharInputCel, excludedWordInputCel, kwListInputCel, kwPasteCel As Range
+Dim home, kw As Worksheet
+Dim i As Long
+Dim toRemove As String
+Dim txt As String
+Dim j, k As Integer
+Dim fullTitle As Variant
+Dim x As String, cell, prevEnd As Range
+Dim kwList As Range
+
+Set home = Sheets("Homepage")
+Set kw = Sheets("KW List")
+Set titlesInputCel = home.Range("C4")
+Set excludedCharInputCel = home.Range("P4")
+Set excludedWordInputCel = home.Range("R4")
+Set kwPasteCel = home.Range("W4")
+Set kwListInputCel = kw.Range("A1")
+Set titlesPasteCel = kw.Range("C2")
+
+'------------------------------------------------------------------------
+
+'clear previous
+kw.Range(kwListInputCel.Offset(1, 0), kwListInputCel.End(xlDown)).ClearContents
+kw.Range(titlesPasteCel.Offset(1, 0), titlesPasteCel.End(xlDown)).ClearContents
+home.Range(kwPasteCel.Offset(1, 0), kwPasteCel.End(xlDown)).ClearContents
+
+'set ranges
+Set titlesList = home.Range(titlesInputCel, titlesInputCel.End(xlDown))
+Set excludedCharList = home.Range(excludedCharInputCel, excludedCharInputCel.End(xlDown))
+NumRowsChar = excludedCharList.Rows.Count
+Set excludedWordList = home.Range(excludedWordInputCel, excludedWordInputCel.End(xlDown))
+NumRowsWord = excludedWordList.Rows.Count
+
+'copy to kw list sheet & remove excluded words
+titlesList.Copy
+titlesPasteCel.PasteSpecial
+
+Set titlesListBG = kw.Range(titlesPasteCel, titlesPasteCel.End(xlDown))
+
+For i = 1 To NumRowsChar
+    toRemove = excludedCharList(i, 1)
+    titlesListBG.Replace What:=toRemove, Replacement:="", LookAt:=xlPart, _
+            SearchOrder:=xlByRows, MatchCase:=False, SearchFormat:=False, _
+            ReplaceFormat:=False, FormulaVersion:=xlReplaceFormula2
+Next
+
+For i = 1 To NumRowsWord
+    toRemove = excludedWordList(i, 1)
+    titlesListBG.Replace What:=toRemove & " ", Replacement:="", LookAt:=xlPart, _
+            SearchOrder:=xlByRows, MatchCase:=False, SearchFormat:=False, _
+            ReplaceFormat:=False, FormulaVersion:=xlReplaceFormula2
+Next
+
+'split into individual words & create vertical list
+k = 1
+For Each cell In titlesListBG
+
+    If k = 1 Then
+        Set prevEnd = kwListInputCel
+    Else
+        Set prevEnd = kwListInputCel.End(xlDown)
+    End If
+    
+    txt = cell.Value
+    FullName = Split(txt, " ")
+    
+    For j = 0 To UBound(FullName)
+        prevEnd.Offset(j + 1, 0).Value = FullName(j)
+    Next j
+    
+    k = k + 1
+    
+Next cell
+
+'remove duplicates & paste back onto homepage
+Set kwList = kw.Range(kwListInputCel, kwListInputCel.End(xlDown))
+kwList.RemoveDuplicates Columns:=1, Header:=xlYes
+
+Set kwList = kw.Range(kwListInputCel.Offset(1, 0), kwListInputCel.End(xlDown))
+kwList.Copy (home.Range("W4"))
+
+End Sub
